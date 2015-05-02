@@ -106,10 +106,18 @@ class WeightedDigraph(Digraph):
     def childrenOf(self, node):
         return [x[0] for x in self.edges[node]]
         
-    def getEdge(self, src, dest):
+    def getEdgeWeights(self, src, dest):
         for node, dist in self.edges[src]:
             if node == dest:
                 return dist
+                
+    def getPathWeights(self, path):
+        distTotal, distOut = 0, 0        
+        for i in range(len(path)-1):
+            distT, distO = self.getEdgeWeights(path[i], path[i+1])
+            distTotal += distT
+            distOut += distO
+        return (distTotal, distOut)
         
     def __str__(self):
         res = ''

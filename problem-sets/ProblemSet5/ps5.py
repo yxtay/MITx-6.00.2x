@@ -93,43 +93,42 @@ def bruteForceSearch(digraph, start, end, maxTotalDist, maxDistOutdoors):
         If there exists no path that satisfies maxTotalDist and
         maxDistOutdoors constraints, then raises a ValueError.
     """
-    startn = Node(start)
-    # dictionary containing records of path, total distance
-    # and outdoor distance from start to any node
-    # key: terminalNode, value: [path, (distTotal, distOut)]
-    endNodes = {startn: [[startn], (0, 0)]}
-    # queue containing tuples of (src, dest) pairs
-    queue = [(startn, child) for child in digraph.childrenOf(startn)]
-    while len(queue) > 0:
-        # get current src, dest pair
-        src, dest = queue.pop(0)
-        # get path, distTotal and distOut from start to src
-        spath, (sdistTotal, sdistOut) = endNodes[src]
-        # get edge weights of src->dest
-        distTotal, distOut = digraph.getEdge(src, dest)
-        # construct path from start to src->dest and find distTotal and distOut
-        cpath = spath + [dest]
-        cdistTotal = sdistTotal + distTotal
-        cdistOut = sdistOut + distOut
-        # get current path to dest from record in dictionary for comparison
-        rpath, (rdistTotal, rdistOut) = endNodes.get(dest, [None, (None, None)])
-        # get current path to end node from record in dictionary for comparison
-        epath, (edistTotal, edistOut) = endNodes.get(Node(end), [None, (None, None)])
-        # update dictionary only if new path is shorter than record
-        # and has total and outdoor distances less than max
-        if (not rpath or cdistTotal < rdistTotal) and \
-            (not epath or cdistTotal <= edistTotal) and \
-            cdistTotal <= maxTotalDist and cdistOut <= maxDistOutdoors:
-                # update dictionary path record
-                endNodes[dest] = [cpath, (cdistTotal, cdistOut)]
-                # add children into queue as (src, dest) pairs
-                for child in digraph.childrenOf(dest):
-                    queue.append((dest, child))
+    def BFS(digraph, path, end, shortest = None):
+        q = [path]
+        while len(q) > 0:
+            tmpPath = q.pop(0)
+            if (not shortest or fcn(digraph, tmpPath, shortest)):
+                lastNode = tmpPath[-1]
+                if lastNode == end:
+                    shortest = tmpPath
+                for node in digraph.childrenOf(lastNode):
+                    if node not in tmpPath:
+                        if withinMax(digraph, tmpPath+[node], maxTotalDist, maxDistOutdoors):
+                            q.append(tmpPath+[node])
+        return shortest
+        
+    fcn = isShorterTotal
+    path = BFS(digraph, [Node(start)], Node(end))
     try:
-        return [str(node) for node in endNodes[Node(end)][0]]
+        return [str(node) for node in path]
     except:
         raise ValueError
+        
+    
+def isShorterTotal(digraph, pathA, pathB):
+    distTotalA, _ = digraph.getPathWeights(pathA)
+    distTotalB, _ = digraph.getPathWeights(pathB)
+    return distTotalA < distTotalB
 
+def isShorterOutdoor(digraph, pathA, pathB):
+    _, distOutA = digraph.getPathWeights(pathA)
+    _, distOutB = digraph.getPathWeights(pathB)
+    return distOutA < distOutB
+    
+def withinMax(digraph, path, maxTotalDist, maxDistOutdoors):
+    dist = digraph.getPathWeights(path)
+    return dist[0] <= maxTotalDist and dist[1] <= maxDistOutdoors
+    
 
 #
 # Problem 4: Finding the Shorest Path using Optimized Search Method
@@ -159,43 +158,28 @@ def directedDFS(digraph, start, end, maxTotalDist, maxDistOutdoors):
         If there exists no path that satisfies maxTotalDist and
         maxDistOutdoors constraints, then raises a ValueError.
     """
-    startn = Node(start)
-    # dictionary containing records of path, total distance
-    # and outdoor distance from start to any node
-    # key: terminalNode, value: [path, (distTotal, distOut)]
-    endNodes = {startn: [[startn], (0, 0)]}
-    # queue containing tuples of (src, dest) pairs
-    queue = [(startn, child) for child in digraph.childrenOf(startn)]
-    while len(queue) > 0:
-        # get current src, dest pair
-        src, dest = queue.pop(0)
-        # get path, distTotal and distOut from start to src
-        spath, (sdistTotal, sdistOut) = endNodes[src]
-        # get edge weights of src->dest
-        distTotal, distOut = digraph.getEdge(src, dest)
-        # construct path from start to src->dest and find distTotal and distOut
-        cpath = spath + [dest]
-        cdistTotal = sdistTotal + distTotal
-        cdistOut = sdistOut + distOut
-        # get current path to dest from record in dictionary for comparison
-        rpath, (rdistTotal, rdistOut) = endNodes.get(dest, [None, (None, None)])
-        # get current path to end node from record in dictionary for comparison
-        epath, (edistTotal, edistOut) = endNodes.get(Node(end), [None, (None, None)])
-        # update dictionary only if new path is shorter than record
-        # and has total and outdoor distances less than max
-        if (not rpath or cdistTotal < rdistTotal) and \
-            (not epath or cdistTotal <= edistTotal) and \
-            cdistTotal <= maxTotalDist and cdistOut <= maxDistOutdoors:
-                # update dictionary path record
-                endNodes[dest] = [cpath, (cdistTotal, cdistOut)]
-                # add children into queue as (src, dest) pairs
-                for child in digraph.childrenOf(dest):
-                    queue.append((dest, child))
-    print endNodes
+    def DFSShortest(digraph, path, end, shortest = None):
+        #assumes graph is a Digraph
+        #assumes start and end are nodes in graph
+        lastNode = path[-1]
+        if lastNode == end:
+            return path
+        for node in digraph.childrenOf(lastNode):
+            if node not in path: #avoid cycles
+                if (not shortest or fcn(digraph, path+[node], shortest)) and \
+                    withinMax(digraph, path+[node], maxTotalDist, maxDistOutdoors):
+                        newPath = DFSShortest(digraph,path+[node],end,shortest)
+                        if newPath != None:
+                            shortest = newPath
+        return shortest
+    
+    fcn = isShorterTotal
+    path = DFSShortest(digraph, [Node(start)], Node(end))
     try:
-        return [str(node) for node in endNodes[Node(end)][0]]
+        return [str(node) for node in path]
     except:
         raise ValueError
+
 
 # Uncomment below when ready to test
 #### NOTE! These tests may take a few minutes to run!! ####
